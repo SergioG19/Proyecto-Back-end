@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Facturas</title>
+  </head>
+  <body>
+    <h1>Facturas</h1>
+    <form id="agregarFacturaForm" action="/facturas" method="post">
+      <label for="id">ID:</label>
+      <input type="number" name="id" id="id" required />
+      <br />
+      <label for="cliente">Cliente:</label>
+      <input type="text" name="cliente" id="cliente" required />
+      <br />
+      <label for="fecha">Fecha:</label>
+      <input type="date" name="fecha" id="fecha" required />
+      <br />
+      <label for="total">Total:</label>
+      <input type="number" step="0.01" name="total" id="total" required />
+      <br />
+      <button type="submit">Agregar factura</button>
+    </form>
+
+    <!-- Formulario de edición de facturas -->
+    <form id="editarFacturaForm" style="display: none">
+      <h2>Editar factura</h2>
+      <input type="hidden" name="idOriginal" id="idOriginal" />
+      <label for="editarId">ID:</label>
+      <input type="number" name="editarId" id="editarId" required />
+      <br />
+      <label for="editarCliente">Cliente:</label>
+      <input type="text" name="editarCliente" id="editarCliente" required />
+      <br />
+      <label for="editarFecha">Fecha:</label>
+      <input type="date" name="editarFecha" id="editarFecha" required />
+      <br />
+      <label for="editarTotal">Total:</label>
+      <input
+        type="number"
+        step="0.01"
+        name="editarTotal"
+        id="editarTotal"
+        required
+      />
+      <br />
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
+    </form>
+
+    <table id="facturasTable" border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Cliente</th>
+          <th>Fecha</th>
+          <th>Total</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Las filas de la tabla se agregarán dinámicamente -->
+      </tbody>
+    </table>
+
+    <script>
+      document
+        .getElementById("agregarFacturaForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const id = parseInt(document.getElementById("id").value);
+          const cliente = document.getElementById("cliente").value;
+          const fecha = document.getElementById("fecha").value;
+          const total = parseFloat(document.getElementById("total").value);
+
+          const nuevaFactura = { id, cliente, fecha, total };
+
+          var xhr = new XMLHttpRequest();
+          xhr.open("POST", "/facturas", true);
+          xhr.setRequestHeader(
+            "Content-Type",
+            "application/json;charset=UTF-8"
+          );
+
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+              if (xhr.status === 201) {
+                agregarFacturaATabla(nuevaFactura);
+                document.getElementById("agregarFacturaForm").reset();
+              } else {
+                alert("Error al agregar la factura: " + xhr.responseText);
+              }
+            }
+          };
+
+          xhr.send(JSON.stringify(nuevaFactura));
+        });
+
+      function agregarFacturaATabla(factura) {
+        const table = document.getElementById("facturasTable");
+        const row = table.insertRow(-1);
+        row.setAttribute("data-id", factura.id);
+
+        const idCell = row.insertCell(0);
+        const clienteCell = row.insertCell(1);
+        const fechaCell = row.insertCell(2);
+        const totalCell = row.insertCell(3);
+        const accionesCell = row.insertCell(4);
+
+        idCell.innerText = factura.id;
+        clienteCell.innerText = factura.cliente;
+        fechaCell.innerText = factura.fecha;
+        totalCell.innerText = factura.total.toFixed(2);
+
+        const editarButton = document.createElement("button");
+        editarButton.innerText = "Editar";
+        editarButton.addEventListener("click", editarFactura);
+        accionesCell.appendChild(editarButton);
+
+        const eliminarButton = document.createElement("button");
+        eliminarButton.innerText = "Eliminar";
+        eliminarButton.addEventListener("click", eliminarFactura);
+        accionesCell.appendChild(eliminarButton);
+      }
+
+      function editarFactura(event) {
+        const facturaRow = event.target.parentNode.parentNode;
+        const id = parseInt(facturaRow.getAttribute("data-id"));
+        const cliente = facturaRow.cells[1].innerText;
+        const fecha = facturaRow.cells[2].innerText;
+        const total = parseFloat(facturaRow.cells[3].innerText);
+
+        document.getElementById("idOriginal").value = id;
+        document.getElementById("editarId").value = id;
+        document.getElementById("editarCliente").value = cliente;
+        document.getElementById("editarFecha").value = fecha;
+        document.getElementById("editarTotal").value = total;
+
+        document.getElementById("agregarFacturaForm").style.display = "none";
+        document.getElementById("editarFacturaForm").style.display = "block";
+      }
+
+      document
+        .getElementById("editarFacturaForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const idOriginal = parseInt(
+            document.getElementById("idOriginal").value
+          );
+          const id = parseInt(document.getElementById("editarId").value);
+          const cliente = document.getElementById("editarCliente").value;
+          const fecha = document.getElementById("editarFecha").value;
+          const total = parseFloat(
+            document.getElementById("editarTotal").value
+          );
+
+          const facturaActualizada = { id, cliente, fecha, total };
+
+          var xhr = new XMLHttpRequest();
+          xhr.open("PUT", "/facturas/" + idOriginal, true);
+          xhr.setRequestHeader(
+            "Content-Type",
+            "application/json;charset=UTF-8"
+          );
+
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+              if (xhr.status === 200) {
+                actualizarFacturaEnTabla(idOriginal, facturaActualizada);
+                document.getElementById("editarFacturaForm").reset();
+                document.getElementById("editarFacturaForm").style.display =
+                  "none";
+                document.getElementById("agregarFacturaForm").style.display =
+                  "block";
+              } else {
+                alert(
+                  "Error al actualizar la factura: " + xhr.responseText
+                );
+              }
+            }
+          };
+
+          xhr.send(JSON.stringify(facturaActualizada));
+        });
+
+      function actualizarFacturaEnTabla(idOriginal, facturaActualizada) {
+        const table = document.getElementById("facturasTable");
+        const rows = table.rows;
+
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+
+          if (parseInt(row.getAttribute("data-id")) === idOriginal) {
+            row.setAttribute("data-id", facturaActualizada.id);
+            row.cells[0].innerText = facturaActualizada.id;
+            row.cells[1].innerText = facturaActualizada.cliente;
+            row.cells[2].innerText = facturaActualizada.fecha;
+            row.cells[3].innerText = facturaActualizada.total.toFixed(2);
+            break;
+          }
+        }
+      }
+
+      document
+        .getElementById("cancelarEdicion")
+        .addEventListener("click", function () {
+          document.getElementById("editarFacturaForm").reset();
+          document.getElementById("editarFacturaForm").style.display = "none";
+          document.getElementById("agregarFacturaForm").style.display =
+            "block";
+        });
+
+      function eliminarFactura(event) {
+        const facturaRow = event.target.parentNode.parentNode;
+        const id = parseInt(facturaRow.getAttribute("data-id"));
+        var xhr = new XMLHttpRequest();
+        xhr.open("DELETE", "/facturas/" + id, true);
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 204) {
+              facturaRow.remove();
+            } else {
+              alert("Error al eliminar la factura: " + xhr.responseText);
+            }
+          }
+        };
+
+        xhr.send();
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Productos</title>
+  </head>
+  <body>
+    <h1>Productos</h1>
+    <form id="agregarProductoForm" action="/productos" method="post">
+      <label for="nombre">Nombre:</label>
+      <input type="text" name="nombre" id="nombre" required />
+      <br />
+      <label for="precio">Precio:</label>
+      <input type="number" name="precio" id="precio" required />
+      <br />
+      <button type="submit">Agregar producto</button>
+    </form>
+
+    <!-- Formulario de edición de productos -->
+    <form id="editarProductoForm" style="display: none">
+      <h2>Editar producto</h2>
+      <input type="hidden" name="idOriginal" id="idOriginal" />
+      <label for="editarNombre">Nombre:</label><br>
+      <input type="text" id="editarNombre" name="editarNombre" required /><br>
+      <label for="editarPrecio">Precio:</label><br>
+      <input type="number" id="editarPrecio" name="editarPrecio" required /><br>
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
+    </form>
+
+    <table id="productosTable" border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Precio</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% productos.forEach(function(producto) { %>
+          <tr data-id="<%= producto._id %>">
+            <td><%= producto._id %></td>
+            <td><%= producto.nombre %></td>
+            <td><%= producto.precio %></td>
+            <td>
+              <button class="editar">Editar</button>
+              <button class="eliminar">Eliminar</button>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <script>
+
+    </script>
+  </body>
+</html>

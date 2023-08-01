@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clientes</title>
+  </head>
+  <body>
+    <h1>Clientes</h1>
+    <form id="agregarClienteForm" action="/clientes" method="post">
+      <label for="nombre">Nombre:</label>
+      <input type="text" name="nombre" id="nombre" required />
+      <br />
+      <label for="email">Email:</label>
+      <input type="email" name="email" id="email" required />
+      <br />
+      <button type="submit">Agregar cliente</button>
+    </form>
+
+    <!-- Formulario de edición de clientes -->
+    <form id="editarClienteForm" style="display: none">
+      <h2>Editar cliente</h2>
+      <input type="hidden" name="idOriginal" id="idOriginal" />
+      <label for="editarNombre">Nombre:</label>
+      <input type="text" name="editarNombre" id="editarNombre" required />
+      <br />
+      <label for="editarEmail">Email:</label>
+      <input type="email" name="editarEmail" id="editarEmail" required />
+      <br />
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
+    </form>
+
+    <table id="clientesTable" border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% clientes.forEach(function(cliente) { %>
+          <tr data-id="<%= cliente._id %>">
+            <td><%= cliente._id %></td>
+            <td><%= cliente.nombre %></td>
+            <td><%= cliente.email %></td>
+            <td>
+              <button class="editar">Editar</button>
+              <button class="eliminar">Eliminar</button>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <script>
+  // Agregar un cliente
+  document
+    .getElementById("agregarClienteForm")
+    .addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const nombre = document.getElementById("nombre").value;
+      const email = document.getElementById("email").value;
+
+      const nuevoCliente = { nombre, email };
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/clientes", true);
+      xhr.setRequestHeader(
+        "Content-Type",
+        "application/json;charset=UTF-8"
+      );
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status === 201) {
+            agregarClienteATabla(JSON.parse(xhr.responseText));
+            document.getElementById("agregarClienteForm").reset();
+          } else {
+            alert("Error al agregar el cliente: " + xhr.responseText);
+          }
+        }
+      };
+
+      xhr.send(JSON.stringify(nuevoCliente));
+    });
+
+  // Agregar un cliente a la tabla
+  function agregarClienteATabla(cliente) {
+    const table = document.getElementById("clientesTable");
+    const row = table.insertRow(-1);
+    row.setAttribute("data-id", cliente._id);
+
+    const idCell = row.insertCell(0);
+    const nombreCell = row.insertCell(1);
+    const emailCell = row.insertCell(2);
+    const accionesCell = row.insertCell(3);
+
+    idCell.innerText = cliente._id;
+    nombreCell.innerText = cliente.nombre;
+    emailCell.innerText = cliente.email;
+
+    const editarButton = document.createElement("button");
+    editarButton.innerText = "Editar";
+    editarButton.addEventListener("click", editarCliente);
+    accionesCell.appendChild(editarButton);
+
+    const eliminarButton = document.createElement("button");
+    eliminarButton.innerText = "Eliminar";
+    eliminarButton.addEventListener("click", eliminarCliente);
+    accionesCell.appendChild(eliminarButton);
+  }
+
+  // Editar un cliente
+  function editarCliente(event) {
+    const row = event.target.closest("tr");
+    const id = row.getAttribute("data-id");
+
+    document.getElementById("idOriginal").value = id;
+    document.getElementById("editarNombre").value = row.cells[1].innerText;
+    document.getElementById("editarEmail").value = row.cells[2].innerText;
+
+    document.getElementById("agregarClienteForm").style.display = "none";
+    document.getElementById("editarClienteForm").style.display = "block";
+  }
+
+  // Guardar los cambios al editar un cliente
+  document
+    .getElementById("editarClienteForm")
+    .addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      const idOriginal = document.getElementById("idOriginal").value;
+      const nombre = document.getElementById("editarNombre").value;
+      const email = document.getElementById("editarEmail").value;
+
+      const clienteActualizado = { nombre, email };
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("PUT", "/clientes/" + idOriginal, true);
+      xhr.setRequestHeader(
+        "Content-Type",
+        "application/json;charset=UTF-8"
+      );
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status === 200) {
+            actualizarClienteEnTabla(idOriginal, JSON.parse(xhr.responseText));
+            cancelarEdicion();
+          } else {
+            alert("Error al actualizar el cliente: " + xhr.responseText);
+          }
+        }
+      };
+
+      xhr.send(JSON.stringify(clienteActualizado));
+    });
+
+  // Actualizar un cliente en la tabla
+  function actualizarClienteEnTabla(idOriginal, clienteActualizado) {
+    const row = document.querySelector("tr[data-id='" + idOriginal + "']");
+    row.cells[1].innerText = clienteActualizado.nombre;
+    row.cells[2].innerText = clienteActualizado.email;
+  }
+
+  // Cancelar la edición de un cliente
+  document
+    .getElementById("cancelarEdicion")
+    .addEventListener("click", cancelarEdicion);
+
+  function cancelarEdicion() {
+    document.getElementById("editarClienteForm").reset();
+    document.getElementById("editarClienteForm").style.display = "none";
+    document.getElementById("agregarClienteForm").style.display = "block";
+  }
+
+  // Eliminar un cliente
+  function eliminarCliente(event) {
+    const row = event.target.closest("tr");
+    const id = row.getAttribute("data-id");
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("DELETE", "/clientes/" + id, true);
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        if (xhr.status === 204) {
+          row.remove();
+        } else {
+          alert("Error al eliminar el cliente: " +(xhr.responseText));
+        }
+      }
+    };
+
+    xhr.send();
+  }
+    </script>
+  </body>
+</html>

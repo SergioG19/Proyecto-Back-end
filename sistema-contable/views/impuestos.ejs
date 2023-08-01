@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Impuestos</title>
+  </head>
+  <body>
+    <h1>Impuestos</h1>
+    <form id="agregarImpuestoForm" action="/impuestos" method="post">
+      <label for="nombre">Nombre:</label>
+      <input type="text" name="nombre" id="nombre" required />
+      <br />
+      <label for="tasa">Tasa:</label>
+      <input type="number" name="tasa" id="tasa" min="0" max="100" required />
+      <br />
+      <button type="submit">Agregar impuesto</button>
+    </form>
+
+    <!-- Formulario de edición de impuestos -->
+    <form id="editarImpuestoForm" style="display: none">
+      <h2>Editar impuesto</h2>
+      <input type="hidden" name="idOriginal" id="idOriginal" />
+      <label for="editarNombre">Nombre:</label>
+      <input type="text" name="editarNombre" id="editarNombre" required />
+      <br />
+      <label for="editarTasa">Tasa:</label>
+      <input type="number" name="editarTasa" id="editarTasa" min="0" max="100" required />
+      <br />
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
+    </form>
+
+    <table id="impuestosTable" border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Tasa</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% impuestos.forEach(function(impuesto) { %>
+          <tr data-id="<%= impuesto._id %>">
+            <td><%= impuesto._id %></td>
+            <td><%= impuesto.nombre %></td>
+            <td><%= impuesto.tasa %></td>
+            <td>
+              <button class="editar">Editar</button>
+              <button class="eliminar">Eliminar</button>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+    <script>
+        // Agregar un impuesto
+        document
+          .getElementById("agregarImpuestoForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+      
+            const nombre = document.getElementById("nombre").value;
+            const tasa = document.getElementById("tasa").value;
+      
+            const nuevoImpuesto = { nombre, tasa };
+      
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/impuestos", true);
+            xhr.setRequestHeader(
+              "Content-Type",
+              "application/json;charset=UTF-8"
+            );
+      
+            xhr.onreadystatechange = function () {
+              if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 201) {
+                  agregarImpuestoATabla(JSON.parse(xhr.responseText));
+                  document.getElementById("agregarImpuestoForm").reset();
+                } else {
+                  alert("Error al agregar el impuesto: " + xhr.responseText);
+                }
+              }
+            };
+      
+            xhr.send(JSON.stringify(nuevoImpuesto));
+          });
+      
+        // Agregar un impuesto a la tabla
+        function agregarImpuestoATabla(impuesto) {
+          const table = document.getElementById("impuestosTable");
+          const row = table.insertRow(-1);
+          row.setAttribute("data-id", impuesto._id);
+      
+          const idCell = row.insertCell(0);
+          const nombreCell = row.insertCell(1);
+          const tasaCell = row.insertCell(2);
+          const accionesCell = row.insertCell(3);
+      
+          idCell.innerText = impuesto._id;
+          nombreCell.innerText = impuesto.nombre;
+          tasaCell.innerText = impuesto.tasa;
+      
+          const editarButton = document.createElement("button");
+          editarButton.innerText = "Editar";
+          editarButton.addEventListener("click", editarImpuesto);
+          accionesCell.appendChild(editarButton);
+      
+          const eliminarButton = document.createElement("button");
+          eliminarButton.innerText = "Eliminar";
+          eliminarButton.addEventListener("click", eliminarImpuesto);
+          accionesCell.appendChild(eliminarButton);
+        }
+      
+        // Editar un impuesto
+        function editarImpuesto(event) {
+          const row = event.target.closest("tr");
+          const id = row.getAttribute("data-id");
+      
+          document.getElementById("idOriginal").value = id;
+          document.getElementById("editarNombre").value = row.cells[1].innerText;
+          document.getElementById("editarTasa").value = row.cells[2].innerText;
+      
+          document.getElementById("agregarImpuestoForm").style.display = "none";
+          document.getElementById("editarImpuestoForm").style.display = "block";
+        }
+      
+        // Guardar los cambios al editar un impuesto
+        document
+          .getElementById("editarImpuestoForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+      
+            const idOriginal = document.getElementById("idOriginal").value;
+            const nombre = document.getElementById("editarNombre").value;
+            const tasa = document.getElementById("editarTasa").value;
+      
+            const impuestoActualizado = { nombre, tasa };
+      
+            var xhr = new XMLHttpRequest();
+            xhr.open("PUT", "/impuestos/" + idOriginal, true);
+            xhr.setRequestHeader(
+              "Content-Type",
+              "application/json;charset=UTF-8"
+            );
+      
+            xhr.onreadystatechange = function () {
+              if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 200) {
+                  actualizarImpuestoEnTabla(idOriginal, JSON.parse(xhr.responseText));
+                  cancelarEdicion();
+                } else {
+                  alert("Error al actualizar el impuesto: " + xhr.responseText);
+                }
+              }
+            };
+      
+            xhr.send(JSON.stringify(impuestoActualizado));
+          });
+      
+        // Actualizar un impuesto en la tabla
+        function actualizarImpuestoEnTabla(idOriginal, impuestoActualizado) {
+          const row = document.querySelector("tr[data-id='" + idOriginal + "']");
+          row.cells[1].innerText = impuestoActualizado.nombre;
+          row.cells[2].innerText = impuestoActualizado.tasa;
+        }
+      
+        // Cancelar la edición de un impuesto
+        document
+          .getElementById("cancelarEdicion")
+          .addEventListener("click", cancelarEdicion);
+      
+        function cancelarEdicion() {
+          document.getElementById("editarImpuestoForm").reset();
+          document.getElementById("editarImpuestoForm").style.display = "none";
+          document.getElementById("agregarImpuestoForm").style.display = "block";
+        }
+      
+        // Eliminar un impuesto
+        function eliminarImpuesto(event) {
+          const row = event.target.closest("tr");
+          const id = row.getAttribute("data-id");
+      
+          var xhr = new XMLHttpRequest();
+          xhr.open("DELETE", "/impuestos/" + id, true);
+      
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+              if (xhr.status === 204) {
+                row.remove();
+              } else {
+                alert("Error al eliminar el impuesto: " + xhr.responseText);
+              }
+            }
+          };
+      
+          xhr.send();
+        }
+      </script>
+  </body>
+</html>

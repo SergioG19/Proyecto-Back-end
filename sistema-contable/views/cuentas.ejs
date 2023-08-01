@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cuentas</title>
+  </head>
+  <body>
+    <h1>Cuentas</h1>
+    <form id="agregarCuentaForm" action="/cuentas" method="post">
+      <label for="id">ID:</label>
+      <input type="number" name="id" id="id" required />
+      <br />
+      <label for="nombre">Nombre:</label>
+      <input type="text" name="nombre" id="nombre" required />
+      <br />
+      <label for="tipo">Tipo:</label>
+      <input type="text" name="tipo" id="tipo" required />
+      <br />
+      <button type="submit">Agregar cuenta</button>
+    </form>
+
+    <!-- Formulario de edición de cuentas -->
+    <form id="editarCuentaForm" style="display: none">
+      <h2>Editar cuenta</h2>
+      <input type="hidden" name="idOriginal" id="idOriginal" />
+      <label for="editarId">ID:</label>
+      <input type="number" name="editarId" id="editarId" required />
+      <br />
+      <label for="editarNombre">Nombre:</label>
+      <input type="text" name="editarNombre" id="editarNombre" required />
+      <br />
+      <label for="editarTipo">Tipo:</label>
+      <input type="text" name="editarTipo" id="editarTipo" required />
+      <br />
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
+    </form>
+
+    <table id="cuentasTable" border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Tipo</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Las filas de la tabla se agregarán dinámicamente -->
+      </tbody>
+    </table>
+
+    <script>
+      document
+        .getElementById("agregarCuentaForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          const id = parseInt(document.getElementById("id").value);
+          const nombre = document.getElementById("nombre").value;
+          const tipo = document.getElementById("tipo").value;
+
+          const nuevaCuenta = { id, nombre, tipo };
+
+          var xhr = new XMLHttpRequest();
+          xhr.open("POST", "/cuentas", true);
+          xhr.setRequestHeader(
+            "Content-Type",
+            "application/json;charset=UTF-8"
+          );
+
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+              if (xhr.status === 201) {
+                agregarCuentaATabla(nuevaCuenta);
+                document.getElementById("agregarCuentaForm").reset();
+              } else {
+                alert("Error al agregar la cuenta: " + xhr.responseText);
+              }
+            }
+          };
+
+          xhr.send(JSON.stringify(nuevaCuenta));
+        });
+
+      function agregarCuentaATabla(cuenta) {
+        const table = document.getElementById("cuentasTable");
+        const row = table.insertRow(-1);
+        row.setAttribute("data-id", cuenta.id);
+
+        const idCell = row.insertCell(0);
+        const nombreCell = row.insertCell(1);
+        const tipoCell = row.insertCell(2);
+        const accionesCell = row.insertCell(3);
+
+        idCell.innerText = cuenta.id;
+        nombreCell.innerText = cuenta.nombre;
+        tipoCell.innerText = cuenta.tipo;
+
+        const editarButton = document.createElement("button");
+        editarButton.innerText = "Editar";
+        editarButton.addEventListener("click", editarCuenta);
+        accionesCell.appendChild(editarButton);
+
+        const eliminarButton = document.createElement("button");
+        eliminarButton.innerText = "Eliminar";
+        eliminarButton.addEventListener("click", eliminarCuenta);
+        accionesCell.appendChild(eliminarButton);
+      }
+
+      function editarCuenta(event) {
+        const row = event.target.closest("tr");
+        const id = parseInt(row.getAttribute("data-id"));
+
+        const editarCuentaForm = document.getElementById("editarCuentaForm");
+        editarCuentaForm.style.display = "block";
+
+        const cuenta = {
+          id: parseInt(row.cells[0].innerText),
+          nombre: row.cells[1].innerText,
+          tipo: row.cells[2].innerText,
+        };
+
+        document.getElementById("idOriginal").value = cuenta.id;
+        document.getElementById("editarId").value = cuenta.id;
+        document.getElementById("editarNombre").value = cuenta.nombre;
+        document.getElementById("editarTipo").value = cuenta.tipo;
+
+        editarCuentaForm.addEventListener("submit", guardarCambios);
+        document
+          .getElementById("cancelarEdicion")
+          .addEventListener("click", cancelarEdicion);
+      }
+
+      function cancelarEdicion() {
+        const editarCuentaForm = document.getElementById("editarCuentaForm");
+        editarCuentaForm.style.display = "none";
+        editarCuentaForm.reset();
+      }
+
+      function guardarCambios(event) {
+        event.preventDefault();
+
+        const idOriginal = parseInt(
+          document.getElementById("idOriginal").value
+        );
+        const id = parseInt(document.getElementById("editarId").value);
+        const nombre = document.getElementById("editarNombre").value;
+        const tipo = document.getElementById("editarTipo").value;
+
+        const cuentaActualizada = { id, nombre, tipo };
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("PUT", "/cuentas/" + idOriginal, true);
+        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200) {
+              actualizarCuentaEnTabla(idOriginal, cuentaActualizada);
+              cancelarEdicion();
+            } else {
+              alert("Error al actualizar la cuenta: " + xhr.responseText);
+            }
+          }
+        };
+
+        xhr.send(JSON.stringify(cuentaActualizada));
+      }
+
+      function actualizarCuentaEnTabla(idOriginal, cuentaActualizada) {
+        const row = document.querySelector("tr[data-id='" + idOriginal + "']");
+        row.setAttribute("data-id", cuentaActualizada.id);
+        row.cells[0].innerText = cuentaActualizada.id;
+        row.cells[1].innerText = cuentaActualizada.nombre;
+        row.cells[2].innerText = cuentaActualizada.tipo;
+      }
+
+      function eliminarCuenta(event) {
+        const row = event.target.closest("tr");
+        const id = parseInt(row.getAttribute("data-id"));
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("DELETE", "/cuentas/" + id, true);
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 204) {
+              row.remove();
+            } else {
+              alert("Error al eliminar la cuenta: " + xhr.responseText);
+            }
+          }
+        };
+
+        xhr.send();
+      }
+    </script>
+  </body>
+</html>

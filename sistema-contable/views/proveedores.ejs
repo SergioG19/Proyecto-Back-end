@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proveedores</title>
+  </head>
+  <body>
+    <h1>Proveedores</h1>
+    <form id="agregarProveedorForm" action="/proveedores" method="post">
+      <label for="nombre">Nombre:</label>
+      <input type="text" name="nombre" id="nombre" required />
+      <br />
+      <label for="email">Email:</label>
+      <input type="email" name="email" id="email" required />
+      <br />
+      <button type="submit">Agregar proveedor</button>
+    </form>
+
+    <!-- Formulario de edición de proveedores -->
+    <form id="editarProveedorForm" style="display: none">
+      <h2>Editar proveedor</h2>
+      <input type="hidden" name="idOriginal" id="idOriginal" />
+      <label for="editarNombre">Nombre:</label>
+      <input type="text" name="editarNombre" id="editarNombre" required />
+      <br />
+      <label for="editarEmail">Email:</label>
+      <input type="email" name="editarEmail" id="editarEmail" required />
+      <br />
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
+    </form>
+
+    <table id="proveedoresTable" border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% proveedores.forEach(function(proveedor) { %>
+          <tr data-id="<%= proveedor._id %>">
+            <td><%= proveedor._id %></td>
+            <td><%= proveedor.nombre %></td>
+            <td><%= proveedor.email %></td>
+            <td>
+              <button class="editar">Editar</button>
+              <button class="eliminar">Eliminar</button>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <script>
+        // Agregar un proveedor
+document
+  .getElementById("agregarProveedorForm")
+  .addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const nombre = document.getElementById("nombre").value;
+    const email = document.getElementById("email").value;
+
+    const nuevoProveedor = { nombre, email };
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/proveedores", true);
+    xhr.setRequestHeader(
+      "Content-Type",
+      "application/json;charset=UTF-8"
+    );
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        if (xhr.status === 201) {
+          agregarProveedorATabla(JSON.parse(xhr.responseText));
+          document.getElementById("agregarProveedorForm").reset();
+        } else {
+          alert("Error al agregar el proveedor: " + xhr.responseText);
+        }
+      }
+    };
+
+    xhr.send(JSON.stringify(nuevoProveedor));
+  });
+
+// Agregar un proveedor a la tabla
+function agregarProveedorATabla(proveedor) {
+  const table = document.getElementById("proveedoresTable");
+  const row = table.insertRow(-1);
+  row.setAttribute("data-id", proveedor._id);
+
+  const idCell = row.insertCell(0);
+  const nombreCell = row.insertCell(1);
+  const emailCell = row.insertCell(2);
+  const accionesCell = row.insertCell(3);
+
+  idCell.innerText = proveedor._id;
+  nombreCell.innerText = proveedor.nombre;
+  emailCell.innerText = proveedor.email;
+
+  const editarButton = document.createElement("button");
+  editarButton.innerText = "Editar";
+  editarButton.addEventListener("click", editarProveedor);
+  accionesCell.appendChild(editarButton);
+
+  const eliminarButton = document.createElement("button");
+  eliminarButton.innerText = "Eliminar";
+  eliminarButton.addEventListener("click", eliminarProveedor);
+  accionesCell.appendChild(eliminarButton);
+}
+
+// Editar un proveedor
+function editarProveedor(event) {
+  const row = event.target.closest("tr");
+  const id = row.getAttribute("data-id");
+
+  document.getElementById("idOriginal").value = id;
+  document.getElementById("editarNombre").value = row.cells[1].innerText;
+  document.getElementById("editarEmail").value = row.cells[2].innerText;
+
+  document.getElementById("agregarProveedorForm").style.display = "none";
+  document.getElementById("editarProveedorForm").style.display = "block";
+}
+
+// Cancelar la edición de un proveedor
+document
+  .getElementById("cancelarEdicion")
+  .addEventListener("click", function () {
+    document.getElementById("agregarProveedorForm").style.display = "block";
+    document.getElementById("editarProveedorForm").style.display = "none";
+  });
+
+// Enviar el formulario de edición
+document
+  .getElementById("editarProveedorForm")
+  .addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    const idOriginal = document.getElementById("idOriginal").value;
+    const nombre = document.getElementById("editarNombre").value;
+    const email = document.getElementById("editarEmail").value;
+
+    const proveedorActualizado = { nombre, email };
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("PUT", "/proveedores/" + idOriginal, true);
+    xhr.setRequestHeader(
+      "Content-Type",
+      "application/json;charset=UTF-8"
+    );
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        if (xhr.status === 200) {
+          actualizarProveedorEnTabla(idOriginal, proveedorActualizado);
+          document.getElementById("editarProveedorForm").reset();
+          document.getElementById("agregarProveedorForm").style.display = "block";
+          document.getElementById("editarProveedorForm").style.display = "none";
+        } else {
+          alert("Error al actualizar el proveedor: " + xhr.responseText);
+        }
+      }
+    };
+
+    xhr.send(JSON.stringify(proveedorActualizado));
+  });
+
+// Actualizar un proveedor en la tabla
+function actualizarProveedorEnTabla(id, proveedor) {
+  const row = document.querySelector(`tr[data-id="${id}"]`);
+
+  row.cells[1].innerText = proveedor.nombre;
+  row.cells[2].innerText = proveedor.email;
+}
+</script>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Empleados</title>
+  </head>
+  <body>
+    <h1>Empleados</h1>
+    <form id="agregarEmpleadoForm" action="/empleados" method="post">
+      <label for="nombre">Nombre:</label>
+      <input type="text" name="nombre" id="nombre" required />
+      <br />
+      <label for="email">Email:</label>
+      <input type="email" name="email" id="email" required />
+      <br />
+      <label for="puesto">Puesto:</label>
+      <input type="text" name="puesto" id="puesto" required />
+      <br />
+      <button type="submit">Agregar empleado</button>
+    </form>
+
+    <!-- Formulario de edición de empleados -->
+    <form id="editarEmpleadoForm" style="display: none">
+      <h2>Editar empleado</h2>
+      <input type="hidden" name="idOriginal" id="idOriginal" />
+      <label for="editarNombre">Nombre:</label><br>
+      <input type="text" id="editarNombre" name="editarNombre" required /><br>
+      <label for="editarEmail">Email:</label><br>
+      <input type="email" id="editarEmail" name="editarEmail" required /><br>
+      <label for="editarPuesto">Puesto:</label><br>
+      <input type="text" id="editarPuesto" name="editarPuesto" required /><br>
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
+    </form>
+
+    <table id="empleadosTable" border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Email</th>
+          <th>Puesto</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% empleados.forEach(function(empleado) { %>
+          <tr data-id="<%= empleado._id %>">
+            <td><%= empleado._id %></td>
+            <td><%= empleado.nombre %></td>
+            <td><%= empleado.email %></td>
+            <td><%= empleado.puesto %></td>
+            <td>
+              <button class="editar">Editar</button>
+              <button class="eliminar">Eliminar</button>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <script>
+
+    </script>
+  </body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventario</title>
+  </head>
+  <body>
+    <h1>Inventario</h1>
+    <form id="agregarInventarioForm" action="/inventario" method="post">
+      <label for="producto">ID del Producto:</label>
+      <input type="text" name="producto" id="producto" required />
+      <br />
+      <label for="cantidad">Cantidad:</label>
+      <input type="number" name="cantidad" id="cantidad" required />
+      <br />
+      <button type="submit">Agregar al inventario</button>
+    </form>
+
+    <!-- Formulario de edición de inventario -->
+    <form id="editarInventarioForm" style="display: none">
+      <h2>Editar Inventario</h2>
+      <input type="hidden" name="idOriginal" id="idOriginal" />
+      <label for="editarCantidad">Cantidad:</label>
+      <input type="number" name="editarCantidad" id="editarCantidad" required />
+      <br />
+      <button type="submit">Guardar cambios</button>
+      <button type="button" id="cancelarEdicion">Cancelar</button>
+    </form>
+
+    <table id="inventarioTable" border="1">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>ID del Producto</th>
+          <th>Cantidad</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% inventario.forEach(function(item) { %>
+          <tr data-id="<%= item._id %>">
+            <td><%= item._id %></td>
+            <td><%= item.producto %></td>
+            <td><%= item.cantidad %></td>
+            <td>
+              <button class="editar">Editar</button>
+              <button class="eliminar">Eliminar</button>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <script>
+        // Agregar un item al inventario
+        document
+          .getElementById("agregarInventarioForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+      
+            const producto = document.getElementById("producto").value;
+            const cantidad = document.getElementById("cantidad").value;
+      
+            const nuevoItem = { producto, cantidad };
+      
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/inventario", true);
+            xhr.setRequestHeader(
+              "Content-Type",
+              "application/json;charset=UTF-8"
+            );
+      
+            xhr.onreadystatechange = function () {
+              if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 201) {
+                  agregarItemATabla(JSON.parse(xhr.responseText));
+                  document.getElementById("agregarInventarioForm").reset();
+                } else {
+                  alert("Error al agregar el item: " + xhr.responseText);
+                }
+              }
+            };
+      
+            xhr.send(JSON.stringify(nuevoItem));
+          });
+      
+        // Agregar un item a la tabla
+        function agregarItemATabla(item) {
+          const table = document.getElementById("inventarioTable");
+          const row = table.insertRow(-1);
+          row.setAttribute("data-id", item._id);
+      
+          const idCell = row.insertCell(0);
+          const productoCell = row.insertCell(1);
+          const cantidadCell = row.insertCell(2);
+          const accionesCell = row.insertCell(3);
+      
+          idCell.innerText = item._id;
+          productoCell.innerText = item.producto;
+          cantidadCell.innerText = item.cantidad;
+      
+          const editarButton = document.createElement("button");
+          editarButton.innerText = "Editar";
+          editarButton.addEventListener("click", editarItem);
+          accionesCell.appendChild(editarButton);
+      
+          const eliminarButton = document.createElement("button");
+          eliminarButton.innerText = "Eliminar";
+          eliminarButton.addEventListener("click", eliminarItem);
+          accionesCell.appendChild(eliminarButton);
+        }
+      
+        // Editar un item del inventario
+        function editarItem(event) {
+          const row = event.target.closest("tr");
+          const id = row.getAttribute("data-id");
+      
+          document.getElementById("idOriginal").value = id;
+          document.getElementById("editarCantidad").value = row.cells[2].innerText;
+      
+          document.getElementById("agregarInventarioForm").style.display = "none";
+          document.getElementById("editarInventarioForm").style.display = "block";
+        }
+      
+        // Guardar los cambios al editar un item del inventario
+        document
+          .getElementById("editarInventarioForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+      
+            const idOriginal = document.getElementById("idOriginal").value;
+            const cantidad = document.getElementById("editarCantidad").value;
+      
+            const itemActualizado = { cantidad };
+      
+            var xhr = new XMLHttpRequest();
+            xhr.open("PUT", "/inventario/" + idOriginal, true);
+            xhr.setRequestHeader(
+              "Content-Type",
+              "application/json;charset=UTF-8"
+            );
+      
+            xhr.onreadystatechange = function () {
+              if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status === 200) {
+                  actualizarItemEnTabla(idOriginal, JSON.parse(xhr.responseText));
+                  cancelarEdicion();
+                } else {
+                  alert("Error al actualizar el item: " + xhr.responseText);
+                }
+              }
+            };
+      
+            xhr.send(JSON.stringify(itemActualizado));
+          });
+      
+        // Actualizar un item del inventario en la tabla
+        function actualizarItemEnTabla(idOriginal, itemActualizado) {
+          const row = document.querySelector("tr[data-id='" + idOriginal + "']");
+          row.cells[2].innerText = itemActualizado.cantidad;
+        }
+      
+        // Cancelar la edición de un item del inventario
+        document
+          .getElementById("cancelarEdicion")
+          .addEventListener("click", cancelarEdicion);
+      
+        function cancelarEdicion() {
+          document.getElementById("editarInventarioForm").reset();
+          document.getElementById("editarInventarioForm").style.display = "none";
+          document.getElementById("agregarInventarioForm").style.display = "block";
+        }
+      
+        // Eliminar un item del inventario
+        function eliminarItem(event) {
+          const row = event.target.closest("tr");
+          const id = row.getAttribute("data-id");
+      
+          var xhr = new XMLHttpRequest();
+          xhr.open("DELETE", "/inventario/" + id, true);
+      
+          xhr.onreadystatechange = function () {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+              if (xhr.status === 204) {
+                row.remove();
+              } else {
+                alert("Error al eliminar el item: " + xhr.responseText);
+              }
+            }
+          };
+      
+          xhr.send();
+        }
+      </script>
